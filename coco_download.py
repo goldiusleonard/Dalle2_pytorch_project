@@ -1,9 +1,8 @@
-from matplotlib import widgets
 import wget
 
-train_img_url = "http://images.cocodataset.org/zips/train2017.zip"
-val_img_url = "http://images.cocodataset.org/zips/val2017.zip"
-train_annot_url = "http://images.cocodataset.org/annotations/stuff_annotations_trainval2017.zip"
+train_img_url = "http://images.cocodataset.org/zips/train2014.zip"
+val_img_url = "http://images.cocodataset.org/zips/val2014.zip"
+train_annot_url = "http://images.cocodataset.org/annotations/annotations_trainval2014.zip"
 
 print(f"Downloading from {train_img_url}")
 wget.download(train_img_url)
