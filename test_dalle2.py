@@ -57,30 +57,23 @@ diffusion_prior = DiffusionPrior(
     cond_drop_prob = 0.2
 ).to(device)
 
-unet1 = Unet(
+unet = Unet(
     dim = 128,
     image_embed_dim = 512,
     cond_dim = 128,
     channels = 3,
     dim_mults=(1, 2, 4, 8)
-)
+).to(device)
 
-unet2 = Unet(
-    dim = 16,
-    image_embed_dim = 256,
-    cond_dim = 128,
-    channels = 3,
-    dim_mults = (1, 2, 4, 8, 16)
-)
+# decoder, which contains the unet and clip
 
 decoder = Decoder(
-    unet = (unet1, unet2),
-    image_sizes = (128, 256),
+    unet = unet,
     clip = OpenAIClip,
     timesteps = 100,
     image_cond_drop_prob = 0.1,
     text_cond_drop_prob = 0.5,
-    condition_on_text_encodings = True  # set this to True if you wish to condition on text during training and sampling
+    condition_on_text_encodings=True
 ).to(device)
 
 dalle2 = DALLE2(
@@ -90,7 +83,7 @@ dalle2 = DALLE2(
 
 dalle2.load_state_dict(torch.load(dalle2_load_path))
 
-for data in test_data:
+for data in tqdm(test_data):
     _, target = data
 
     test_img_tensors = dalle2(
