@@ -93,5 +93,5 @@ for data in tqdm(test_data):
 
     for test_idx, test_img_tensor in enumerate(test_img_tensors):
         test_img = T.ToPILImage()(test_img_tensor)
-        test_save_path = os.path.join(test_img_save_path, f"{target[test_idx]}.jpg")
+        test_save_path = test_img_save_path + "/" + str(target[test_idx]) + ".jpg"
         test_img.save(Path(test_save_path))

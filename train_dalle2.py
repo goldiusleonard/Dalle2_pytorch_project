@@ -136,12 +136,11 @@ for curr_epoch in range(epoch):
         avg_loss.backward()
         opt.step()
 
-        if batch_idx != 0 and batch_idx % 100 == 0:
-            torch.save(diffusion_prior.state_dict(), diff_save_path)
-            sched.step()
-
         if batch_idx % 100 == 0:
+            torch.save(diffusion_prior.state_dict(), diff_save_path)
             print(f"average loss: {avg_loss.data}")
+        
+    sched.step()
 
 torch.save(diffusion_prior.state_dict(), diff_save_path)
 
@@ -180,12 +179,11 @@ for curr_epoch in range(epoch):
         avg_loss.backward()
         opt.step()
 
-        if batch_idx != 0 and batch_idx % 100 == 0:
-            torch.save(decoder.state_dict(), decoder_save_path)
-            sched.step()
-        
         if batch_idx % 100 == 0:
+            torch.save(decoder.state_dict(), decoder_save_path)
             print(f"average loss: {avg_loss.data}")
+        
+    sched.step()
 
 torch.save(decoder.state_dict(), decoder_save_path)
 

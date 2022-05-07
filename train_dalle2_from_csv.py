@@ -123,7 +123,7 @@ for curr_epoch in range(epoch):
             image = transform(image)
             image = image.unsqueeze(0).to(device)
 
-            target = list(train_csv.loc[curr_idx]['caption'])
+            target = [train_csv.loc[curr_idx]['caption']]
             texts = tokenizer.tokenize(target).to(device)
 
             for text in texts:
@@ -139,12 +139,11 @@ for curr_epoch in range(epoch):
         avg_loss.backward()
         opt.step()
 
-        if batch_idx != 0 and batch_idx % 100 == 0:
-            torch.save(diffusion_prior.state_dict(), diff_save_path)
-            sched.step()
-
         if batch_idx % 100 == 0:
+            torch.save(diffusion_prior.state_dict(), diff_save_path)
             print(f"average loss: {avg_loss.data}")
+        
+    sched.step()
 
 torch.save(diffusion_prior.state_dict(), diff_save_path)
 
@@ -171,14 +170,14 @@ for curr_epoch in range(epoch):
             image = transform(image)
             image = image.unsqueeze(0).to(device)
 
-            target = list(train_csv.loc[curr_idx]['caption'])
+            target = [train_csv.loc[curr_idx]['caption']]
             texts = tokenizer.tokenize(target).to(device)
 
             for text in texts:
                 if total_loss == torch.tensor(0., device=device):
-                    total_loss = decoder(text.unsqueeze(0), image)
+                    total_loss = decoder(image, text.unsqueeze(0))
                 else:
-                    total_loss += decoder(text.unsqueeze(0), image)
+                    total_loss += decoder(image, text.unsqueeze(0))
                 batch_len += 1
                 
         avg_loss = total_loss / batch_len
@@ -187,12 +186,11 @@ for curr_epoch in range(epoch):
         avg_loss.backward()
         opt.step()
 
-        if batch_idx != 0 and batch_idx % 100 == 0:
-            torch.save(decoder.state_dict(), decoder_save_path)
-            sched.step()
-        
         if batch_idx % 100 == 0:
+            torch.save(decoder.state_dict(), decoder_save_path)
             print(f"average loss: {avg_loss.data}")
+        
+    sched.step()
 
 torch.save(decoder.state_dict(), decoder_save_path)
 

@@ -10,10 +10,10 @@ from dalle2_pytorch import DALLE2, DiffusionPriorNetwork, DiffusionPrior, Unet, 
 input_image_size = 256
 
 # Change your train image root path here
-test_img_path = "./val2014/"
+test_img_path = "./Flower_Dataset_Combine/ImagesCombine/"
 
 # Change your train annot csv path here
-test_annot_path = "./coco_annotations/captions_val2014.csv"
+test_annot_path = "./Flower_Dataset_Combine/New_captions.csv"
 
 # Change your device ("cpu" or "cuda")
 device = "cuda"
@@ -83,7 +83,7 @@ dalle2 = DALLE2(
 dalle2.load_state_dict(torch.load(dalle2_load_path))
 
 for data in tqdm(test_csv.iterrows()):
-    target = list(data[1]['caption'])
+    target = [data[1]['caption']]
 
     test_img_tensors = dalle2(
         target,
@@ -92,5 +92,5 @@ for data in tqdm(test_csv.iterrows()):
 
     for test_idx, test_img_tensor in enumerate(test_img_tensors):
         test_img = T.ToPILImage()(test_img_tensor)
-        test_save_path = os.path.join(test_img_save_path, f"{target[test_idx]}.jpg")
+        test_save_path = test_img_save_path + "/" + str(target[test_idx]) + ".jpg"
         test_img.save(Path(test_save_path))
