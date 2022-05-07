@@ -1,14 +1,12 @@
 import torch
 from torch.optim.lr_scheduler import ExponentialLR
 from torchvision import transforms as T
-from pathlib import Path
 from PIL import Image
 import os
 from tqdm import tqdm
 from dalle2_pytorch import DALLE2, DiffusionPriorNetwork, DiffusionPrior, Unet, Decoder, OpenAIClipAdapter
 from dalle2_pytorch.tokenizer import SimpleTokenizer
 from dalle2_pytorch.optimizer import get_optimizer
-from torchvision.datasets.coco import CocoCaptions
 import pandas as pd
 
 # Change your input size here
@@ -115,8 +113,8 @@ for curr_epoch in range(epoch):
         else:
             iter_idx = range(batch_idx, batch_idx+batch_size, 1)
 
-        image_list = []
-        text_list = []
+        batch_len = 0
+        total_loss = torch.tensor(0., device=device)
         
         for curr_idx in iter_idx:
             image_name = train_csv.loc[curr_idx]['file_name']
@@ -126,28 +124,27 @@ for curr_epoch in range(epoch):
             image = image.unsqueeze(0).to(device)
 
             target = list(train_csv.loc[curr_idx]['caption'])
-            text = tokenizer.tokenize(target).to(device)
+            texts = tokenizer.tokenize(target).to(device)
 
-            text_size = len(text)
-            for i in range(text_size):
-                image_list.append(image)
-            
-            text_list.append(text)
+            for text in texts:
+                if total_loss == torch.tensor(0., device=device):
+                    total_loss = diffusion_prior(text.unsqueeze(0), image)
+                else:
+                    total_loss += diffusion_prior(text.unsqueeze(0), image)
+                batch_len += 1
+                
+        avg_loss = total_loss / batch_len
 
-        text = torch.cat(text_list, dim=0).to(device)
-        image = torch.cat(image_list, dim=0).to(device)
-    
-        loss = diffusion_prior(text, image)
         opt.zero_grad()
-        loss.backward()
+        avg_loss.backward()
         opt.step()
 
         if batch_idx != 0 and batch_idx % 100 == 0:
             torch.save(diffusion_prior.state_dict(), diff_save_path)
             sched.step()
 
-        if batch_idx % 1000 == 0:
-            print(f"loss: {loss.data}")
+        if batch_idx % 100 == 0:
+            print(f"average loss: {avg_loss.data}")
 
 torch.save(diffusion_prior.state_dict(), diff_save_path)
 
@@ -164,8 +161,8 @@ for curr_epoch in range(epoch):
         else:
             iter_idx = range(batch_idx, batch_idx+batch_size, 1)
 
-        image_list = []
-        text_list = []
+        batch_len = 0
+        total_loss = torch.tensor(0., device=device)
         
         for curr_idx in iter_idx:
             image_name = train_csv.loc[curr_idx]['file_name']
@@ -175,28 +172,27 @@ for curr_epoch in range(epoch):
             image = image.unsqueeze(0).to(device)
 
             target = list(train_csv.loc[curr_idx]['caption'])
-            text = tokenizer.tokenize(target).to(device)
+            texts = tokenizer.tokenize(target).to(device)
 
-            text_size = len(text)
-            for i in range(text_size):
-                image_list.append(image)
-            
-            text_list.append(text)
-            
-        text = torch.cat(text_list, dim=0).to(device)
-        image = torch.cat(image_list, dim=0).to(device)
+            for text in texts:
+                if total_loss == torch.tensor(0., device=device):
+                    total_loss = decoder(text.unsqueeze(0), image)
+                else:
+                    total_loss += decoder(text.unsqueeze(0), image)
+                batch_len += 1
+                
+        avg_loss = total_loss / batch_len
 
-        loss = decoder(image, text) # this can optionally be decoder(images, text) if you wish to condition on the text encodings as well, though it was hinted in the paper it didn't do much
         opt.zero_grad()
-        loss.backward()
+        avg_loss.backward()
         opt.step()
 
         if batch_idx != 0 and batch_idx % 100 == 0:
             torch.save(decoder.state_dict(), decoder_save_path)
             sched.step()
         
-        if batch_idx % 1000 == 0:
-            print(f"loss: {loss.data}")
+        if batch_idx % 100 == 0:
+            print(f"average loss: {avg_loss.data}")
 
 torch.save(decoder.state_dict(), decoder_save_path)
 
@@ -206,15 +202,3 @@ dalle2 = DALLE2(
 ).to(device)
 
 torch.save(dalle2.state_dict(), dalle2_save_path)
-
-test_input = ['Closeup of bins of food that include broccoli and bread.'] # text input for the model (can be more than one)
-
-test_img_tensors = dalle2(
-    test_input,
-    cond_scale = 2., # classifier free guidance strength (> 1 would strengthen the condition)
-)
-
-for test_idx, test_img_tensor in enumerate(test_img_tensors):
-    test_img = T.ToPILImage()(test_img_tensor)
-    test_save_path = os.path.join(test_img_save_path, f"{test_input[test_idx]}.jpg")
-    test_img.save(Path(test_save_path))
