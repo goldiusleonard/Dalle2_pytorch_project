@@ -19,10 +19,10 @@ batch_size = 1
 epoch = 5
 
 # Change your train image root path here
-train_img_path = "./train2014/"
+test_img_path = "./Flower_Dataset_Combine/ImagesCombine/"
 
 # Change your train annot csv path here
-train_annot_path = "./coco_annotations/captions_train2014.csv"
+test_annot_path = "./Flower_Dataset_Combine/New_captions.csv"
 
 # Change your device ("cpu" or "cuda")
 device = "cuda"
