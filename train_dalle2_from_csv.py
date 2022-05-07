@@ -19,10 +19,10 @@ batch_size = 1
 epoch = 5
 
 # Change your train image root path here
-test_img_path = "./Flower_Dataset_Combine/ImagesCombine/"
+train_img_path = "./Flower_Dataset_Combine/ImagesCombine/"
 
 # Change your train annot csv path here
-test_annot_path = "./Flower_Dataset_Combine/New_captions.csv"
+train_annot_path = "./Flower_Dataset_Combine/New_captions.csv"
 
 # Change your device ("cpu" or "cuda")
 device = "cuda"
@@ -35,12 +35,6 @@ decoder_save_path = "./decoder.pth"
 
 # Change the model weight save path here (end with ".pth")
 dalle2_save_path = "./dalle2.pth"
-
-# Change the test result image save path (should be a directory or folder)
-test_img_save_path = "./result"
-
-if not os.path.exists(test_img_save_path):
-    os.makedirs(test_img_save_path)
 
 transform = T.Compose([
     T.Lambda(lambda img: img.convert('RGB') if img.mode != 'RGB' else img),

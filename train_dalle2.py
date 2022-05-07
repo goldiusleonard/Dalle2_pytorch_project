@@ -36,12 +36,6 @@ decoder_save_path = "./decoder.pth"
 # Change the model weight save path here (end with ".pth")
 dalle2_save_path = "./dalle2.pth"
 
-# Change the test result image save path (should be a directory or folder)
-test_img_save_path = "./result"
-
-if not os.path.exists(test_img_save_path):
-    os.makedirs(test_img_save_path)
-
 transform = T.Compose([
     T.Lambda(lambda img: img.convert('RGB') if img.mode != 'RGB' else img),
     T.Resize(input_image_size),
