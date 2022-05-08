@@ -121,8 +121,8 @@ train_size = len(train_data)
 idx_list = range(0, train_size, batch_size)
 
 tokenizer = SimpleTokenizer()
-opt = get_optimizer(diffusion_prior.parameters())
-sched = ExponentialLR(opt, gamma=0.01)
+# opt = get_optimizer(diffusion_prior.parameters())
+# sched = ExponentialLR(opt, gamma=0.01)
 
 for curr_epoch in range(epoch):
     print("Run training diffusion prior ...")
@@ -154,15 +154,16 @@ for curr_epoch in range(epoch):
                 
         avg_loss = total_loss / batch_len
 
-        opt.zero_grad()
+        # opt.zero_grad()
         avg_loss.backward()
-        opt.step()
+        diff_trainer.update()
+        # opt.step()
 
         if batch_idx % 100 == 0:
             torch.save(diffusion_prior.state_dict(), diff_save_path)
             print(f"average loss: {avg_loss.data}")
         
-    sched.step()
+    # sched.step()
 
 torch.save(diffusion_prior.state_dict(), diff_save_path)
 
@@ -171,8 +172,8 @@ idx_list = range(0, train_size, batch_size)
 
 tokenizer = SimpleTokenizer()
 
-opt = get_optimizer(decoder.parameters())
-sched = ExponentialLR(opt, gamma=0.01)
+# opt = get_optimizer(decoder.parameters())
+# sched = ExponentialLR(opt, gamma=0.01)
 
 for curr_epoch in range(epoch):
     print("Run training decoder ...")
@@ -206,15 +207,16 @@ for curr_epoch in range(epoch):
                     
             avg_loss = total_loss / batch_len
 
-            opt.zero_grad()
+            # opt.zero_grad()
             avg_loss.backward()
-            opt.step()
+            decoder_trainer.update(unet_number=unet_number)
+            # opt.step()
 
         if batch_idx % 100 == 0:
             torch.save(decoder.state_dict(), decoder_save_path)
             print(f"average loss: {avg_loss.data}")
         
-    sched.step()
+    # sched.step()
 
 torch.save(decoder.state_dict(), decoder_save_path)
 
