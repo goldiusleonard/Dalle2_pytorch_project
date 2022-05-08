@@ -1,10 +1,9 @@
 import torch
-from torch.optim.lr_scheduler import ExponentialLR
 from torchvision import transforms as T
-from pathlib import Path
+from torch.optim.lr_scheduler import ExponentialLR
 import os
 from tqdm import tqdm
-from dalle2_pytorch import DALLE2, DiffusionPriorNetwork, DiffusionPrior, Unet, Decoder, OpenAIClipAdapter
+from dalle2_pytorch import DALLE2, DiffusionPriorNetwork, DiffusionPrior, Unet, Decoder, OpenAIClipAdapter, DiffusionPriorTrainer, DecoderTrainer
 from dalle2_pytorch.tokenizer import SimpleTokenizer
 from dalle2_pytorch.optimizer import get_optimizer
 from torchvision.datasets.coco import CocoCaptions
@@ -16,7 +15,7 @@ input_image_size = 256
 batch_size = 1
 
 # Change your epoch here
-epoch = 5
+epoch = 1
 
 # Change your train image root path here
 train_img_path = "./train2014/"
@@ -57,7 +56,7 @@ prior_network = DiffusionPriorNetwork(
     depth = 6,
     dim_head = 64,
     heads = 8
-)
+).to(device)
 
 diffusion_prior = DiffusionPrior(
     net = prior_network,
@@ -66,7 +65,16 @@ diffusion_prior = DiffusionPrior(
     cond_drop_prob = 0.2
 ).to(device)
 
-unet = Unet(
+diff_trainer = DiffusionPriorTrainer(
+    diffusion_prior,
+    lr = 3e-4,
+    wd = 1e-2,
+    ema_beta = 0.99,
+    ema_update_after_step = 1000,
+    ema_update_every = 10,
+)
+
+unet1 = Unet(
     dim = 128,
     image_embed_dim = 512,
     cond_dim = 128,
@@ -74,16 +82,34 @@ unet = Unet(
     dim_mults=(1, 2, 4, 8)
 ).to(device)
 
+unet2 = Unet(
+    dim = 16,
+    image_embed_dim = 512,
+    cond_dim = 128,
+    channels = 3,
+    dim_mults = (1, 2, 4, 8, 16)
+).to(device)
+
 # decoder, which contains the unet and clip
 
 decoder = Decoder(
-    unet = unet,
+    unet = (unet1, unet2),
+    image_sizes = (128, 256),
     clip = OpenAIClip,
     timesteps = 100,
     image_cond_drop_prob = 0.1,
     text_cond_drop_prob = 0.5,
-    condition_on_text_encodings=True
+    condition_on_text_encodings=False
 ).to(device)
+
+decoder_trainer = DecoderTrainer(
+    decoder,
+    lr = 3e-4,
+    wd = 1e-2,
+    ema_beta = 0.99,
+    ema_update_after_step = 1000,
+    ema_update_every = 10,
+)
 
 if os.path.exists(diff_save_path):
     diffusion_prior.load_state_dict(torch.load(diff_save_path))
@@ -119,9 +145,11 @@ for curr_epoch in range(epoch):
 
             for text in texts:
                 if total_loss == torch.tensor(0., device=device):
-                    total_loss = diffusion_prior(text.unsqueeze(0), image)
+                    total_loss = diff_trainer(text.unsqueeze(0), image)
+                    # total_loss = diffusion_prior(text.unsqueeze(0), image)
                 else:
-                    total_loss += diffusion_prior(text.unsqueeze(0), image)
+                    total_loss += diff_trainer(text.unsqueeze(0), image)
+                    # total_loss += diffusion_prior(text.unsqueeze(0), image)
                 batch_len += 1
                 
         avg_loss = total_loss / batch_len
@@ -138,6 +166,11 @@ for curr_epoch in range(epoch):
 
 torch.save(diffusion_prior.state_dict(), diff_save_path)
 
+rain_size = len(train_data)
+idx_list = range(0, train_size, batch_size)
+
+tokenizer = SimpleTokenizer()
+
 opt = get_optimizer(decoder.parameters())
 sched = ExponentialLR(opt, gamma=0.01)
 
@@ -151,27 +184,31 @@ for curr_epoch in range(epoch):
         else:
             iter_idx = range(batch_idx, batch_idx+batch_size, 1)
 
-        batch_len = 0
-        total_loss = torch.tensor(0., device=device)
-        
-        for curr_idx in iter_idx:
-            image, target = train_data[curr_idx]
-            image = image.unsqueeze(0).to(device)
 
-            texts = tokenizer.tokenize(target).to(device)
+        for unet_number in (1,2):
+            batch_len = 0
+            total_loss = torch.tensor(0., device=device)
+            
+            for curr_idx in iter_idx:
+                image, _ = train_data[curr_idx]
+                image = image.unsqueeze(0).type(torch.FloatTensor).to(device)
 
-            for text in texts:
+                # texts = tokenizer.tokenize(target).to(device)
+
+                # for text in texts:
                 if total_loss == torch.tensor(0., device=device):
-                    total_loss = decoder(text.unsqueeze(0), image)
+                    total_loss = decoder_trainer(image, unet_number=unet_number)
+                    # total_loss = decoder(image, text.unsqueeze(0))
                 else:
-                    total_loss += decoder(text.unsqueeze(0), image)
+                    total_loss += decoder_trainer(image, unet_number=unet_number)
+                    # total_loss += decoder(image, text.unsqueeze(0))
                 batch_len += 1
-                
-        avg_loss = total_loss / batch_len
+                    
+            avg_loss = total_loss / batch_len
 
-        opt.zero_grad()
-        avg_loss.backward()
-        opt.step()
+            opt.zero_grad()
+            avg_loss.backward()
+            opt.step()
 
         if batch_idx % 100 == 0:
             torch.save(decoder.state_dict(), decoder_save_path)

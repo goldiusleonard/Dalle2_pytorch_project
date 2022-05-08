@@ -47,7 +47,7 @@ prior_network = DiffusionPriorNetwork(
     depth = 6,
     dim_head = 64,
     heads = 8
-)
+).to(device)
 
 diffusion_prior = DiffusionPrior(
     net = prior_network,
@@ -56,7 +56,7 @@ diffusion_prior = DiffusionPrior(
     cond_drop_prob = 0.2
 ).to(device)
 
-unet = Unet(
+unet1 = Unet(
     dim = 128,
     image_embed_dim = 512,
     cond_dim = 128,
@@ -64,15 +64,24 @@ unet = Unet(
     dim_mults=(1, 2, 4, 8)
 ).to(device)
 
+unet2 = Unet(
+    dim = 16,
+    image_embed_dim = 512,
+    cond_dim = 128,
+    channels = 3,
+    dim_mults = (1, 2, 4, 8, 16)
+).to(device)
+
 # decoder, which contains the unet and clip
 
 decoder = Decoder(
-    unet = unet,
+    unet = (unet1, unet2),
+    image_sizes = (128, 256),
     clip = OpenAIClip,
     timesteps = 100,
     image_cond_drop_prob = 0.1,
     text_cond_drop_prob = 0.5,
-    condition_on_text_encodings=True
+    condition_on_text_encodings=False
 ).to(device)
 
 dalle2 = DALLE2(
