@@ -9,17 +9,17 @@ from torchvision.datasets.coco import CocoCaptions
 # Change your input size here
 input_image_size = 256
 
-# Change your train image root path here
+# Change your test image root path here
 test_img_path = "./val2014/"
 
-# Change your train annot json path here
+# Change your test annot json path here
 test_annot_path = "./coco_annotations/captions_val2014.json"
 
 # Change your device ("cpu" or "cuda")
 device = "cuda"
 
-# Change the model weight save path here (end with ".pth")
-dalle2_load_path = "./dalle2.pth"
+# Change the model weight load path here (end with ".pth")
+dalle2_load_path = "./pretrained/dalle2_epoch2.pth"
 
 # Change the test result image save path (should be a directory or folder)
 test_img_save_path = "./result"

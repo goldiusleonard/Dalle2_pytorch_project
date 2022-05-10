@@ -9,16 +9,13 @@ from dalle2_pytorch import DALLE2, DiffusionPriorNetwork, DiffusionPrior, Unet, 
 # Change your input size here
 input_image_size = 256
 
-# Change your train image root path here
-test_img_path = "./Flower_Dataset_Combine/ImagesCombine/"
-
-# Change your train annot csv path here
+# Change your test annot csv path here
 test_annot_path = "./Flower_Dataset_Combine/New_captions.csv"
 
 # Change your device ("cpu" or "cuda")
 device = "cuda"
 
-# Change the model weight save path here (end with ".pth")
+# Change the model weight load path here (end with ".pth")
 dalle2_load_path = "./dalle2.pth"
 
 # Change the test result image save path (should be a directory or folder)
