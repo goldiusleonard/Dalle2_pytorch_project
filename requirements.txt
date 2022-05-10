@@ -5,7 +5,7 @@ Pillow==9.0.1
 tqdm==4.64.0
 numpy==1.22.3
 opencv-python==4.5.5.64
-dalle2-pytorch==0.1.10
+dalle2-pytorch==0.2.4
 setuptools>=32.0.0
 Click>=7.0
 pytest==4.3.1
